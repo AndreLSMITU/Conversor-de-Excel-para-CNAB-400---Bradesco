@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conversor Excel para CNAB-400 - Bradesco</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <style>
+      /* Resetando alguns estilos padrão */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        background-color: #f4f7fc;
+        color: #333;
+        line-height: 1.6;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        color: #002e6d;
+        margin-bottom: 30px;
+        font-size: 2.5rem;
+      }
+
+      /* Formulário de upload */
+      #upload-form {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      #upload-form label {
+        font-size: 1.2rem;
+        color: #555;
+        display: block;
+        margin-bottom: 10px;
+      }
+
+      #upload-form input[type="file"] {
+        font-size: 1rem;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        width: 100%;
+        margin-bottom: 15px;
+      }
+
+      #upload-form button {
+        background-color: #002e6d;
+        color: #fff;
+        font-size: 1.1rem;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        transition: background-color 0.3s;
+      }
+
+      #upload-form button:hover {
+        background-color: #0056b3;
+      }
+
+      #output {
+        background-color: #fff;
+        color: #333;
+        padding: 20px;
+        margin-top: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        font-family: "Courier New", monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      /* Responsividade */
+      @media (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        #upload-form {
+          padding: 20px;
+        }
+
+        #upload-form button {
+          font-size: 1rem;
+        }
+      }
+      .footer {
+        background-color: #002e6d; /* Mesmo fundo azul do título */
+        color: white;
+        text-align: center;
+        padding: 5px 0;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Conversor de Excel para CNAB-400 - Bradesco</h1>
+    <form id="upload-form">
+      <label for="excel-file">Selecione o arquivo Excel:</label>
+      <input type="file" id="excel-file" accept=".xlsx" />
+      <button type="button" onclick="convertToCNAB400()">Converter</button>
+    </form>
+    <pre id="output"></pre>
+
+    <script>
+      function removerAcentos(texto) {
+        return texto
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+          .replace(/[^\w\s]/g, "") // Remove caracteres especiais (mantém letras, números e espaços)
+      }
+
+      function convertToCNAB400() {
+        const fileInput = document.getElementById("excel-file")
+        if (!fileInput.files.length) {
+          alert("Por favor, selecione um arquivo Excel.")
+          return
+        }
+        const file = fileInput.files[0]
+        let cnabContent = ""
+        let lineNumber = 1
+
+        function preencherCampo(
+          valor,
+          length,
+          padChar = " ",
+          alignRight = false,
+        ) {
+          return alignRight
+            ? valor.toString().padStart(length, padChar)
+            : valor.toString().padEnd(length, padChar)
+        }
+
+        function formatarValor(valor) {
+          // Converte o valor para string
+          valor = valor.toString().trim()
+
+          // Verifica se o valor termina em ",00" e remove a vírgula e os zeros
+          if (valor.endsWith(",00")) {
+            valor = valor.slice(0, -3)
+          }
+
+          // Substitui vírgula por ponto para garantir a consistência
+          valor = valor.replace(",", ".")
+
+          // Se o valor não tiver casas decimais, adiciona "00"
+          if (!valor.includes(".")) {
+            valor += ".00"
+          }
+
+          // Se o valor tiver apenas uma casa decimal, adiciona um zero
+          if (valor.split(".")[1].length === 1) {
+            valor += "0"
+          }
+
+          // Remove o ponto e retorna o valor formatado com 13 dígitos
+          return valor.replace(".", "").padStart(13, "0")
+        }
+
+        function formatarDataVencimento(dataExcel) {
+          if (!dataExcel) return "000000" // Valor padrão caso não haja data
+
+          // Verifica se o valor é uma data em formato serial do Excel
+          if (typeof dataExcel === "number") {
+            // Calcula a data correta a partir do número de série do Excel (1 de janeiro de 1900)
+            const excelDate = new Date(Date.UTC(1900, 0, dataExcel - 1))
+            const dia = String(excelDate.getUTCDate()).padStart(2, "0")
+            const mes = String(excelDate.getUTCMonth() + 1).padStart(2, "0")
+            const ano = String(excelDate.getUTCFullYear()).slice(-2)
+            return dia + mes + ano
+          }
+          // Caso a data já esteja em formato de string
+          const data = new Date(dataExcel)
+          if (!isNaN(data)) {
+            const dia = String(data.getDate()).padStart(2, "0")
+            const mes = String(data.getMonth() + 1).padStart(2, "0")
+            const ano = String(data.getFullYear()).slice(-2)
+            return dia + mes + ano
+          }
+          return "000000" // Retorno padrão para dados inesperados
+        }
+        function criarLinhaHeader() {
+          let headerLine = ""
+          headerLine += preencherCampo("0", 1, "0", true)
+          headerLine += preencherCampo("1", 1, "0", true)
+          headerLine += preencherCampo("REMESSA", 7)
+          headerLine += preencherCampo("01", 2, "0", true)
+          headerLine += preencherCampo("COBRANCA", 15)
+          headerLine += preencherCampo("00000000000004500360", 20, "0", true)
+          headerLine += preencherCampo("FUNDO DE INV DIREITOS CREDS BS", 30)
+          headerLine += preencherCampo("237", 3, "0", true)
+          headerLine += preencherCampo("BRADESCO", 15)
+          const dataGravacao = new Date()
+          const dia = String(dataGravacao.getDate()).padStart(2, "0")
+          const mes = String(dataGravacao.getMonth() + 1).padStart(2, "0")
+          const ano = String(dataGravacao.getFullYear()).slice(-2)
+          headerLine += preencherCampo(dia + mes + ano, 6, "0", true)
+          headerLine += preencherCampo("", 8)
+          headerLine += preencherCampo("MX", 2)
+          headerLine += preencherCampo("0000001", 7, "0", true)
+          headerLine += preencherCampo("", 277)
+          headerLine += preencherCampo(lineNumber, 6, "0", true)
+          cnabContent += headerLine + "\n"
+          lineNumber++
+        }
+
+        criarLinhaHeader()
+
+        const reader = new FileReader()
+        reader.onload = function (e) {
+          const data = new Uint8Array(e.target.result)
+          const workbook = XLSX.read(data, { type: "array" })
+          const sheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[sheetName]
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i]
+            let detalheLine = ""
+
+            const cnpjSacado = row[18] || "0"
+            let nomeSacado = removerAcentos(row[6] || "")
+            let enderecoSacado = removerAcentos(row[19] || "")
+            const cepFormatado = row[17] || "00000000"
+            const numeroDuplicata = row[3] || "0"
+            const parcelaDuplicata = row[4] || "0"
+            const dataVencimentoOriginal = row[11] || ""
+            const valorDuplicataOriginal = row[13] || "0"
+            const chaveDanfe = row[22] || ""
+            const dataEmissaoOriginal = row[9] || ""
+
+            const numeroDuplicataComParcela =
+              `${numeroDuplicata}-${parcelaDuplicata}`.slice(0, 10)
+            const dataVencimento = formatarDataVencimento(
+              dataVencimentoOriginal,
+            )
+            const dataEmissao = formatarDataVencimento(dataEmissaoOriginal)
+            const valorDuplicata = formatarValor(valorDuplicataOriginal)
+            detalheLine += preencherCampo("1", 1, "0", true)
+            detalheLine += preencherCampo("", 5, "0", true)
+            detalheLine += preencherCampo("", 1, "0", true)
+            detalheLine += preencherCampo("", 5, "0", true)
+            detalheLine += preencherCampo("0000000", 7, "0", true)
+            detalheLine += preencherCampo("", 1, "0", true)
+            detalheLine += preencherCampo("00190337200225800", 17)
+            detalheLine += preencherCampo("0000000000000000000000000", 25)
+            detalheLine += preencherCampo("000", 3, "0", true)
+            detalheLine += preencherCampo("0", 1, "0", true)
+            detalheLine += preencherCampo("0000", 4, "0", true)
+            detalheLine += preencherCampo("", 11, "0", true)
+            detalheLine += preencherCampo("", 1, "0", true)
+            detalheLine += preencherCampo("", 10, "0000000000", true)
+            detalheLine += preencherCampo("1", 1, "", true)
+            detalheLine += preencherCampo("", 1)
+            detalheLine += preencherCampo("", 10)
+            detalheLine += preencherCampo("", 1)
+            detalheLine += preencherCampo("", 1)
+            detalheLine += preencherCampo("", 2)
+            detalheLine += preencherCampo("01", 2, "0", true)
+            detalheLine += preencherCampo(numeroDuplicataComParcela, 10)
+            detalheLine += preencherCampo(dataVencimento, 6, "0", true)
+            detalheLine += preencherCampo(valorDuplicata, 13) // Posição 126 a 139 para o valor da duplicata
+            detalheLine += preencherCampo("", 3, "0", true)
+            detalheLine += preencherCampo("", 5, "0", true)
+            detalheLine += preencherCampo("01", 2, "0", true)
+            detalheLine += preencherCampo("N", 1)
+            detalheLine += preencherCampo("", 6, "0", true)
+            detalheLine += preencherCampo("", 2, "0", true)
+            detalheLine += preencherCampo("", 2, "0", true)
+            detalheLine += preencherCampo("", 13, "0", true)
+            detalheLine += preencherCampo(dataEmissao, 6, "0", true)
+            detalheLine += preencherCampo("", 13, "0", true)
+            detalheLine += preencherCampo("", 13, "0", true)
+            detalheLine += preencherCampo("", 13, "0", true)
+            detalheLine += preencherCampo("02", 2, "0", true)
+            detalheLine += preencherCampo(cnpjSacado, 14, "0", true)
+            detalheLine += preencherCampo(nomeSacado, 40).slice(0, 40) // Nome do Sacado sem acentos
+            detalheLine += preencherCampo(enderecoSacado, 40) // Endereço do Sacado sem acentos
+            detalheLine = detalheLine.padEnd(326)
+            detalheLine += preencherCampo(cepFormatado, 8, "0", true)
+            detalheLine = detalheLine.padEnd(394)
+            detalheLine += preencherCampo(lineNumber, 6, "0", true)
+            detalheLine = detalheLine.padEnd(400)
+            detalheLine += preencherCampo(chaveDanfe, 44)
+
+            cnabContent += detalheLine + "\n"
+            lineNumber++
+          }
+
+          let trailerLine = preencherCampo("9", 1)
+          trailerLine = trailerLine.padEnd(394)
+          trailerLine += preencherCampo(lineNumber, 6, "0", true)
+          cnabContent += trailerLine + "\n"
+          document.getElementById("output").textContent = cnabContent
+
+          const blob = new Blob([cnabContent], { type: "text/plain" })
+          const link = document.createElement("a")
+          link.href = URL.createObjectURL(blob)
+          link.download = "cnab400_bradesco.txt"
+          link.click()
+        }
+
+        reader.readAsArrayBuffer(file)
+      }
+    </script>
+  </body>
+</html>
