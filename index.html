@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Conversor CNAB-400</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f7fc;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .login-container {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+      }
+      .login-container h1 {
+        color: #002e6d;
+        margin-bottom: 20px;
+      }
+      .login-container input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+      .login-container button {
+        background-color: #002e6d;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .login-container button:hover {
+        background-color: #0056b3;
+      }
+
+      .footer {
+        background-color: #002e6d; /* Mesmo fundo azul do título */
+        color: white;
+        text-align: center;
+        padding: 5px 0;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <h1>Seja Bem Vindo!!!</h1>
+      <h1>Faça seu Login</h1>
+      <input type="text" id="username" placeholder="Usuário" />
+      <input type="password" id="password" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+    </div>
+
+    <script>
+      // Lista de usuários com nome e senha, declarada dentro de uma função para evitar conflitos globais
+      function getUsers() {
+        return [
+          { username: "admin", password: "1234" },
+          { username: "bordero", password: "1234" },
+          { username: "user2", password: "abcde" },
+          { username: "luan", password: "santana2024" }
+        ];
+      }
+
+      function login() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const users = getUsers(); // Chama a função que retorna a lista de usuários
+
+        // Verifica se o usuário está na lista
+        const userFound = users.find(
+          (user) => user.username === username && user.password === password
+        );
+
+        if (userFound) {
+          alert(`Bem-vindo, ${username}! Login realizado com sucesso.`);
+          window.location.href = "pagina_principal.html"; // Redireciona para a página principal
+        } else {
+          alert("Usuário ou senha inválidos!");
+        }
+      }
+    </script>
+
+    <div class="footer">
+      <p>
+        © 2024 Criado por André Luis Salles Martins. Todos os direitos
+        reservados.
+      </p>
+    </div>
+  </body>
+</html>
