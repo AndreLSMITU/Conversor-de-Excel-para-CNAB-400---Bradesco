@@ -307,7 +307,7 @@
             detalheLine += preencherCampo("02", 2, "0", true)
             detalheLine += preencherCampo(cnpjSacado, 14, "0", true)
             detalheLine += preencherCampo(nomeSacado, 40).slice(0, 40) // Nome do Sacado sem acentos
-            detalheLine += preencherCampo(enderecoLimitado, 40)
+            detalheLine += preencherCampo(enderecoLimitado, 40).slice(0, 40)
             detalheLine = detalheLine.padEnd(326)
             detalheLine += preencherCampo(cepFormatado, 8, "0", true)
             detalheLine = detalheLine.padEnd(394)
@@ -343,3 +343,4 @@
     </div>
   </body>
 </html>
+
